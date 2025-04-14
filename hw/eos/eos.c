@@ -151,6 +151,12 @@ static void eos_1300D_machine_init(MachineClass *mc)
     mc->init = eos_init;
 }
 
+static void eos_4000D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 4000D";
+    mc->init = eos_init;
+}
+
 static void eos_A1100_machine_init(MachineClass *mc)
 {
     mc->desc = "Canon EOS A1100";
@@ -396,6 +402,7 @@ DEFINE_MACHINE(MODEL_NAME_60D, eos_60D_machine_init)
 DEFINE_MACHINE(MODEL_NAME_600D, eos_600D_machine_init)
 DEFINE_MACHINE(MODEL_NAME_1100D, eos_1100D_machine_init)
 DEFINE_MACHINE(MODEL_NAME_1200D, eos_1200D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_4000D, eos_4000D_machine_init)
 DEFINE_MACHINE(MODEL_NAME_1300D, eos_1300D_machine_init)
 DEFINE_MACHINE(MODEL_NAME_A1100, eos_A1100_machine_init)
 DEFINE_MACHINE(MODEL_NAME_5D3, eos_5D3_machine_init)
@@ -751,6 +758,20 @@ static void eos_rom_write(void *opaque, hwaddr addr, uint64_t value, uint32_t si
             // different values: C2 25 39, 20 BB 19 or 01 02 19.
             msg = "Flash model ID?";
             uint32_t model_id = 0x003925C2;
+            MEM_WRITE_ROM(address, (uint8_t *) &model_id, 4);
+            goto end;
+        }
+    }
+    
+    if (strcmp(s->model->name, MODEL_NAME_4000D) == 0)
+    {
+        if (address == 0xF8000000 && size == 1 && value == 6)
+        {
+            // Reading flash model ID?
+            // Startup code writes to this address, but expects to read
+            // different values: C2 25 39, 20 BB 19 or 01 02 19.
+            msg = "Flash model ID?";
+            uint32_t model_id = 0x003825C2;
             MEM_WRITE_ROM(address, (uint8_t *) &model_id, 4);
             goto end;
         }
@@ -3515,7 +3536,7 @@ unsigned int eos_handle_gpio(unsigned int parm, unsigned int address, unsigned c
             break;
 
       case 0xF48C:
-            if(strcmp(eos_state->model->name, MODEL_NAME_1300D) == 0)
+            if(strcmp(eos_state->model->name, MODEL_NAME_1300D) == 0 || strcmp(eos_state->model->name, MODEL_NAME_4000D) == 0)
             {
                 /* 1300D: return 0 here to bypass "System & Display Check & Adjustment program" */
                 /* 0x4000000 = HDMI disconnected */
